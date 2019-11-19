@@ -1,5 +1,9 @@
+# FROM fiorix/crosstool-ng-arm as crosstool-build
+
 FROM nginx:1.17.5-alpine
 LABEL maintainer=sam016
+
+# COPY --from=crosstool-build /opt/cross /opt/cross
 
 ENV FFMPEG_VERSION=3.4.6
 

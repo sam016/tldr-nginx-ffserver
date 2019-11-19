@@ -1,0 +1,33 @@
+FROM arm32v7/alpine:3.10.3 AS builder
+
+ENV CT_NG_VERSION=1.24.0
+ENV CT_NG_INSTALLED_DIR=/opt/cross
+ENV CT_NG_BUILD_DIR=/usr/share/ct-ng-build
+
+WORKDIR /tmp/crosstool-ng
+
+# install required packages
+RUN apk add --update build-base curl nasm tar bzip2 xz \
+    flex texinfo bison bash gawk libtool binutils gperf \
+    subversion unzip ncurses-dev gettext-dev sudo help2man
+
+# download crosstool and build from sources
+RUN curl -s http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-${CT_NG_VERSION}.tar.xz | tar -xJf - -C . && \
+    cd crosstool-ng-${CT_NG_VERSION} && \
+    ./configure --prefix=${CT_NG_INSTALLED_DIR} && \
+    make && \
+    sudo make install && \
+    export PATH=$PATH:${CT_NG_INSTALLED_DIR}/bin
+
+RUN apk add --update autoconf wget patch
+
+RUN mkdir ${CT_NG_BUILD_DIR}
+WORKDIR ${CT_NG_BUILD_DIR}
+
+COPY ct-ng.config .config
+RUN ${CT_NG_INSTALLED_DIR}/bin/ct-ng build
+
+WORKDIR /
+
+FROM arm32v7/alpine:3.10.3
+COPY --from=builder ${CT_NG_BUILD_DIR} ${CT_NG_BUILD_DIR}
